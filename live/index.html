@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <title>Live bracket</title>
+  <style>
+    :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#dedcd6; --accent:#1f6f5c; --err:#b3261e; --gold:#a8730a; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#121314; --card:#1d1f21; --ink:#ececec; --muted:#9a9a9f; --line:#33363a; --accent:#5cc2a6; --err:#ff8a80; --gold:#f0c46c; }
+    }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui, sans-serif; padding:16px 16px 40px; }
+    header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    h1 { font-size:1.4rem; margin:0; }
+    .status { margin:4px 0 0; color:var(--muted); }
+    .status.champ { color:var(--gold); font-weight:700; font-size:1.15rem; }
+    .meta { display:flex; gap:10px; align-items:center; font-size:.8rem; color:var(--muted); }
+    .conn { padding:2px 8px; border-radius:99px; border:1px solid var(--line); }
+    .conn.live { color:var(--accent); border-color:var(--accent); }
+    .conn.live::before { content:"● "; }
+    .conn.error { color:var(--err); border-color:var(--err); }
+    button.tvbtn { font:inherit; font-size:.8rem; background:none; border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:2px 8px; }
+    .follow { display:flex; gap:8px; margin:14px 0 0; }
+    .follow select { flex:1; max-width:340px; font:inherit; padding:8px 10px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+    .card { background:var(--card); border:1px solid var(--accent); border-radius:12px; padding:10px 14px; margin:10px 0 0; }
+    .card .sub { color:var(--muted); font-size:.85rem; }
+    .waiting { color:var(--muted); margin:24px 0; }
+    .now { margin:18px 0; }
+    h2 { font-size:1rem; margin:0 0 8px; }
+    .stations { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; }
+    .station { display:flex; flex-direction:column; gap:2px; background:var(--card); border:1px solid var(--accent); border-radius:10px; padding:8px 10px; min-height:64px; }
+    .station.free { border-color:var(--line); color:var(--muted); }
+    .station .sn { font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:var(--accent); font-weight:700; }
+    .station.free .sn { color:var(--muted); }
+    .station .sm { font-weight:600; font-size:.92rem; }
+    .station .ss { color:var(--muted); font-size:.85rem; font-variant-numeric:tabular-nums; }
+    .upnext { color:var(--muted); font-size:.88rem; margin:8px 0 0; }
+    .section { margin:20px 0; }
+    .rounds { display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; }
+    .round { min-width:170px; flex:0 0 auto; display:flex; flex-direction:column; justify-content:space-around; gap:10px; }
+    .round h3 { font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 4px; }
+    .match { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    .match.live { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+    .slot { display:flex; gap:8px; align-items:center; font-size:.9rem; padding:8px 10px; min-height:40px; }
+    .slot + .slot { border-top:1px solid var(--line); }
+    .slot.won { background:var(--accent); color:#fff; font-weight:600; }
+    .slot.me { outline:2px solid var(--gold); outline-offset:-2px; }
+    .slot.empty { color:var(--muted); font-style:italic; }
+    .seed { font-size:.75rem; opacity:.6; min-width:16px; }
+    .score { margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; padding-left:8px; }
+    .mfoot { border-top:1px solid var(--line); color:var(--muted); font-size:.78rem; padding:6px 10px; }
+    .mfoot.on { color:var(--accent); font-weight:600; }
+    footer { margin-top:28px; text-align:center; color:var(--muted); font-size:.75rem; }
+
+    /* TV: bigger everything, for a venue screen */
+    body.tv { font-size:20px; padding:24px 32px; }
+    body.tv h1 { font-size:2rem; }
+    body.tv .follow, body.tv .card { display:none !important; }
+    body.tv .stations { grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+    body.tv .station { min-height:100px; padding:12px 14px; }
+    body.tv .station .sm { font-size:1.3rem; }
+    body.tv .round { min-width:230px; }
+    body.tv .slot { font-size:1.15rem; min-height:50px; }
+  </style>
+</head>
+<body>
+  <div id="bad" hidden>
+    <h1>This live link isn't complete</h1>
+    <p class="status">Ask the organizer to show the live QR code again, or send you the full link.</p>
+  </div>
+
+  <main id="main">
+    <header>
+      <div>
+        <h1 id="title">Live bracket</h1>
+        <p id="status" class="status"></p>
+      </div>
+      <div class="meta">
+        <span id="updated"></span>
+        <span id="conn" class="conn">Connecting…</span>
+        <button id="tvToggle" class="tvbtn" type="button">TV mode</button>
+      </div>
+    </header>
+
+    <div id="followBox" class="follow" hidden>
+      <select id="followSel" aria-label="Follow a player"></select>
+    </div>
+    <div id="followCard" class="card" hidden><span id="followText"></span></div>
+
+    <p id="waiting" class="waiting" hidden>Waiting for the organizer to share the bracket… This page updates on its own.</p>
+
+    <section id="boards" class="now" hidden>
+      <h2>Now playing</h2>
+      <div id="stations" class="stations"></div>
+      <p id="upNext" class="upnext"></p>
+    </section>
+
+    <div id="bracket"></div>
+    <footer>Updates arrive by themselves. No need to refresh.</footer>
+  </main>
+
+  <script src="live.js"></script>
+</body>
+</html>
