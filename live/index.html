@@ -53,12 +53,25 @@
     .score { margin-left:auto; font-weight:700; font-variant-numeric:tabular-nums; padding-left:8px; }
     .mfoot { border-top:1px solid var(--line); color:var(--muted); font-size:.78rem; padding:6px 10px; }
     .mfoot.on { color:var(--accent); font-weight:600; }
+    .join h2 { margin:2px 0 8px; }
+    .joinrow { display:flex; gap:8px; margin-top:4px; }
+    .joinrow input { flex:1; min-width:0; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); }
+    .joinrow button { font:inherit; font-weight:600; padding:10px 18px; border:0; border-radius:10px; background:var(--accent); color:#fff; }
+    @media (prefers-color-scheme: dark) { .joinrow button { color:#121314; } }
+    .joinrow button:disabled { opacity:.6; }
+    #joinMsg { margin:8px 0 0; color:var(--ink); }
+    #joinMsg.err { color:var(--err); }
+    .linkbtn { background:none; border:0; color:var(--accent); font:inherit; font-size:.9rem; padding:6px 0 0; }
+    .players { list-style:none; padding:0; margin:0; display:flex; flex-wrap:wrap; gap:6px; }
+    .players li { background:var(--card); border:1px solid var(--line); border-radius:99px; padding:4px 12px; font-size:.9rem; }
+    .players li.me { border-color:var(--gold); color:var(--gold); font-weight:600; }
     footer { margin-top:28px; text-align:center; color:var(--muted); font-size:.75rem; }
 
     /* TV: bigger everything, for a venue screen */
     body.tv { font-size:20px; padding:24px 32px; }
     body.tv h1 { font-size:2rem; }
     body.tv .follow, body.tv .card { display:none !important; }
+    body.tv .players li { font-size:1.2rem; padding:6px 16px; }
     body.tv .stations { grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
     body.tv .station { min-height:100px; padding:12px 14px; }
     body.tv .station .sm { font-size:1.3rem; }
@@ -90,7 +103,25 @@
     </div>
     <div id="followCard" class="card" hidden><span id="followText"></span></div>
 
-    <p id="waiting" class="waiting" hidden>Waiting for the organizer to share the bracket… This page updates on its own.</p>
+    <p id="waiting" class="waiting" hidden>Connecting to the organizer… This page updates on its own.</p>
+
+    <section id="joinBox" class="card join" hidden>
+      <h2>Join this tournament</h2>
+      <form id="joinForm">
+        <label for="joinName" class="sub">Your name, as you want it on the bracket</label>
+        <div class="joinrow">
+          <input id="joinName" maxlength="40" autocomplete="name" autocapitalize="words" required />
+          <button id="joinBtn" type="submit">Join</button>
+        </div>
+      </form>
+      <p id="joinMsg" class="sub" hidden></p>
+      <button id="joinAgain" class="linkbtn" type="button" hidden>Sign up someone else</button>
+    </section>
+
+    <section id="playersBox" class="now" hidden>
+      <h2 id="playersTitle">Players</h2>
+      <ul id="playersList" class="players"></ul>
+    </section>
 
     <section id="boards" class="now" hidden>
       <h2>Now playing</h2>
