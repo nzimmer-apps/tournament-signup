@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#1f6f5c" />
+  <title>Tournament</title>
+  <style>
+    :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#dedcd6; --accent:#1f6f5c; --err:#b3261e; --warn:#8a5a00; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#121314; --card:#1d1f21; --ink:#ececec; --muted:#9a9a9f; --line:#33363a; --accent:#5cc2a6; --err:#ff8a80; --warn:#f0c46c; }
+    }
+    * { box-sizing: border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui, sans-serif;
+           padding: env(safe-area-inset-top) 16px 32px; }
+    h1 { font-size:1.4rem; margin:20px 0 4px; }
+    .sub { color:var(--muted); margin:0 0 16px; font-size:.9rem; }
+    textarea, select, button.go, button.alt { width:100%; font:inherit; border:1px solid var(--line); border-radius:10px;
+           background:var(--card); color:var(--ink); padding:10px 12px; }
+    textarea { min-height:160px; resize:vertical; }
+    #winners { min-height:90px; }
+    label { display:block; font-size:.85rem; color:var(--muted); margin:12px 0 4px; }
+    button.go { margin-top:12px; background:var(--accent); color:#fff; border:0; font-weight:600; padding:12px; }
+    button.alt { font-weight:500; padding:10px; }
+    .row { display:flex; gap:8px; margin-top:8px; }
+    .row > * { flex:1; }
+    .check { display:flex; gap:10px; align-items:flex-start; color:var(--ink); font-size:.85rem; margin-top:12px; }
+    .check input { margin-top:3px; width:18px; height:18px; flex:0 0 auto; accent-color:var(--accent); }
+    .msg { margin:14px 0; font-weight:500; }
+    .msg.error { color:var(--err); }
+    .warnings { color:var(--warn); font-size:.85rem; padding-left:18px; }
+    .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:4px 14px 14px; margin-top:16px; }
+    .panel h2 { font-size:1rem; margin:12px 0 4px; }
+    #teams ol { padding-left:22px; margin:4px 0 12px; }
+    .section { margin-bottom:20px; }
+    .section h2 { font-size:1rem; margin:0 0 8px; }
+    .rounds { display:flex; gap:12px; overflow-x:auto; padding-bottom:8px; }
+    .round { min-width:170px; flex:0 0 auto; display:flex; flex-direction:column; justify-content:space-around; gap:10px; }
+    .round h3 { font-size:.8rem; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 4px; }
+    .match { background:var(--card); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+    .match.bye { opacity:.7; }
+    .slot { display:flex; gap:8px; align-items:center; width:100%; text-align:left; font:inherit; font-size:.9rem;
+            background:none; color:inherit; border:0; padding:8px 10px; min-height:40px; }
+    .slot + .slot { border-top:1px solid var(--line); }
+    .slot.won { background:var(--accent); color:#fff; font-weight:600; }
+    .slot.empty { color:var(--muted); font-style:italic; }
+    .slot:disabled { cursor:default; }
+    .seed { font-size:.75rem; color:inherit; opacity:.6; min-width:16px; }
+    #exitTv { display:none; }
+    .appversion { text-align:center; color:var(--muted); font-size:.75rem; margin:24px 0 0; }
+    body.tv .appversion { display:none; }
+    .grid2, .grid3 { display:grid; gap:8px; grid-template-columns:1fr 1fr; }
+    .grid3 { grid-template-columns:repeat(3, 1fr); }
+    .grid3 > [hidden] { display:none; }
+    .grid3:has(> [hidden]) { grid-template-columns:1fr 1fr; }
+    .match .score { margin-left:auto; font-variant-numeric:tabular-nums; font-weight:700; padding-left:8px; }
+    .mfoot { display:block; width:100%; border:0; border-top:1px solid var(--line); background:none; color:var(--muted);
+             font:inherit; font-size:.78rem; text-align:left; padding:6px 10px; }
+    .mfoot.on { color:var(--accent); font-weight:600; }
+    .match.live { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent) inset; }
+    .now { margin:0 0 16px; }
+    .now h2 { font-size:1rem; margin:0 0 8px; }
+    .stations { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; }
+    .station { display:flex; flex-direction:column; gap:2px; text-align:left; font:inherit; color:var(--ink); background:var(--card);
+               border:1px solid var(--accent); border-radius:10px; padding:8px 10px; min-height:64px; }
+    .station.free { border-color:var(--line); color:var(--muted); }
+    .station .sn { font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; color:var(--accent); font-weight:700; }
+    .station.free .sn { color:var(--muted); }
+    .station .sm { font-weight:600; font-size:.92rem; }
+    .station .ss { font-variant-numeric:tabular-nums; color:var(--muted); font-size:.85rem; }
+    .upnext { color:var(--muted); font-size:.88rem; margin:8px 0 0; }
+    .srow { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+    .srow .sname { flex:1; font-weight:600; }
+    .srow.lead .sname::after { content:" ●"; color:var(--accent); }
+    .srow .sval { min-width:2ch; text-align:center; font-size:1.6rem; font-weight:700; font-variant-numeric:tabular-nums; }
+    .step { width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:1.3rem; }
+    #winA.picked, #winB.picked { background:var(--accent); color:#fff; border-color:var(--accent); }
+    .dialog select { width:100%; }
+    #sheetClose { margin-top:14px; }
+    input.text { width:100%; font:inherit; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); padding:10px 12px; }
+    .center { text-align:center; }
+    .qrbox { display:flex; justify-content:center; margin:14px 0 6px; }
+    .qr { background:#fff; padding:8px; border-radius:12px; width:240px; max-width:80vw; line-height:0; }
+    .qr svg { width:100%; height:auto; display:block; }
+    #signupLink, #liveLink { word-break:break-all; color:var(--accent); font-size:.8rem; }
+    #liveStatus.warn { color:var(--err); }
+    .pending { list-style:none; padding:0; margin:8px 0; }
+    .pending li { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; margin-bottom:6px; background:var(--bg); }
+    .pending li span { flex:1; font-weight:500; }
+    .pending li button { width:auto; padding:6px 12px; font:inherit; font-size:.9rem; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+    .pending li button.ok { background:var(--accent); color:#fff; border:0; }
+    .tvqr { text-align:center; }
+    .tvqr .qr { width:min(70vh, 80vw); margin:0 auto; }
+    .tvqr h1 { font-size:2rem; margin:8px 0 12px; }
+    .tvqr p { font-size:1.3rem; color:var(--muted); }
+    body:not(.tv) .tvqr { display:none !important; }
+    body.tv.tv-qr #bracket, body.tv.tv-qr .msg { display:none; }
+    body.tv:not(.tv-qr) .tvqr { display:none !important; }
+    .titlebar { display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+    .savestatus { font-size:.8rem; color:var(--muted); white-space:nowrap; }
+    .toolbar { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0 16px; }
+    .toolbar[hidden] { display:none; }
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10; }
+    .dialog { background:var(--bg); border-radius:14px; padding:6px 16px 16px; width:100%; max-width:420px; }
+    .dialog h2 { font-size:1.1rem; margin:12px 0 10px; }
+    .choice { display:block; width:100%; text-align:left; font:inherit; color:var(--ink); background:var(--card);
+              border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:8px; }
+    .choice span { display:block; font-size:.85rem; color:var(--muted); margin-top:2px; }
+    .choice.danger strong { color:var(--err); }
+    button.go.danger { background:var(--err); }
+    @media (prefers-color-scheme: dark) { button.go.danger { color:#1d1f21; } }
+
+    /* TV view: controls hidden, everything bigger, made for mirroring to a TV */
+    body.tv { padding:16px 24px; }
+    body.tv .setup, body.tv #review, body.tv .toolbar, body.tv #teams, body.tv #resetDlg, body.tv #signup, body.tv #livePanel { display:none !important; }
+    body.tv .hint { bottom:auto; top:12px; }
+    body.tv .msg { font-size:1.6rem; text-align:center; margin:4px 0 16px; }
+    body.tv .section h2 { font-size:1.3rem; }
+    body.tv .round { min-width:230px; }
+    body.tv .round h3 { font-size:1rem; }
+    body.tv .slot { font-size:1.2rem; min-height:52px; }
+    body.tv .now h2 { font-size:1.4rem; }
+    body.tv .stations { grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; }
+    body.tv .station { min-height:96px; padding:12px 14px; }
+    body.tv .station .sn { font-size:1rem; }
+    body.tv .station .sm { font-size:1.35rem; }
+    body.tv .station .ss { font-size:1.2rem; }
+    body.tv .upnext { font-size:1.2rem; }
+    body.tv .mfoot { pointer-events:none; }
+    body.tv #sheet { display:none !important; }
+    body.tv #exitTv { display:block; position:fixed; top:10px; right:10px; width:auto; opacity:.5; }
+    .hint { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); background:var(--ink); color:var(--bg);
+            padding:10px 16px; border-radius:10px; font-size:.95rem; max-width:90vw; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="setup">
+    <div class="titlebar">
+      <h1>Tournament</h1>
+      <span id="saveStatus" class="savestatus"></span>
+    </div>
+    <p class="sub">Paste names, one per line. For a balanced draw, add a rating after a comma (e.g. <code>Ann, 3.2</code>).</p>
+
+    <label for="names">Players</label>
+    <textarea id="names" placeholder="One name per line"></textarea>
+
+    <label for="mode">Entries</label>
+    <select id="mode">
+      <option value="singles">Singles (order = seeding)</option>
+      <option value="random">Doubles: luck of the draw</option>
+      <option value="balanced">Doubles: skill-balanced</option>
+    </select>
+
+    <label for="format">Bracket</label>
+    <select id="format">
+      <option value="single">Single elimination</option>
+      <option value="double">Double elimination</option>
+      <option value="triple">Triple elimination</option>
+    </select>
+
+    <label class="check" id="trueFinalsRow">
+      <input type="checkbox" id="trueFinals" checked />
+      True finals: players keep their remaining lives in the finals, so the grand final is replayed if the losers-side player wins
+    </label>
+
+    <div class="grid3">
+      <div><label for="raceW" id="raceWLabel">Race to</label><select id="raceW" class="race"></select></div>
+      <div id="raceLBox"><label for="raceL">Losers race to</label><select id="raceL" class="race"></select></div>
+      <div><label for="raceF">Finals race to</label><select id="raceF" class="race"></select></div>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label for="stationCount">How many <span class="stationWord">boards</span>?</label>
+        <input id="stationCount" class="text" type="number" min="0" max="99" inputmode="numeric" value="0" />
+      </div>
+      <div>
+        <label for="stationLabel">Called</label>
+        <select id="stationLabel">
+          <option>Board</option><option>Table</option><option>Court</option><option>Lane</option><option>Station</option>
+        </select>
+      </div>
+    </div>
+    <label class="check" id="stationAutoRow">
+      <input type="checkbox" id="stationAuto" checked />
+      Auto-assign matches to free <span class="stationWord">boards</span> (you can still override any match)
+    </label>
+
+    <button id="build" class="go">Build bracket</button>
+    <div class="row">
+      <button id="photo" class="alt">📷 From a photo</button>
+      <button id="demo" class="alt">✨ Demo data</button>
+    </div>
+    <div class="row">
+      <button id="signupOpen" class="alt">📱 QR sign-up</button>
+      <button id="liveOpen" class="alt">🔗 Live link</button>
+    </div>
+  </div>
+
+  <div id="livePanel" class="panel" hidden>
+    <h2>Live link</h2>
+    <p class="sub">Anyone with this link can follow the bracket, boards and scores on their phone, or on any TV or laptop browser. Only you can change anything.</p>
+    <label for="liveTitle">Event name shown to viewers (optional)</label>
+    <input id="liveTitle" class="text" maxlength="60" placeholder="e.g. Friday Night Darts" />
+    <div class="qrbox"><div id="liveQr" class="qr"></div></div>
+    <p class="sub center"><a id="liveLink" target="_blank" rel="noopener"></a></p>
+    <div class="row">
+      <button id="liveCopy" class="alt">Copy link</button>
+      <button id="liveTv" class="alt">📺 Show on TV</button>
+    </div>
+    <p id="liveStatus" class="sub center"></p>
+    <div class="row">
+      <button id="liveHide" class="alt">Hide</button>
+      <button id="liveStop" class="alt">■ Stop sharing</button>
+    </div>
+  </div>
+
+  <div id="signup" class="panel" hidden>
+    <h2>QR sign-up</h2>
+    <p class="sub">Players scan this with their phone camera and type their name. Names wait below for you to add them.</p>
+    <label for="eventName">Event name shown to players (optional)</label>
+    <input id="eventName" class="text" maxlength="60" placeholder="e.g. Friday Night Darts" />
+    <div class="qrbox"><div id="qr" class="qr"></div></div>
+    <p class="sub center">Can't scan? Share this link: <a id="signupLink" target="_blank" rel="noopener"></a></p>
+    <p id="signupStatus" class="sub center"></p>
+    <ul id="pendingList" class="pending"></ul>
+    <div class="row">
+      <button id="addAll" class="alt">✓ Add all waiting</button>
+      <button id="qrTv" class="alt">📺 Show on TV</button>
+    </div>
+    <div class="row">
+      <button id="signupHide" class="alt">Hide</button>
+      <button id="signupStop" class="alt">■ End sign-up</button>
+    </div>
+  </div>
+
+  <div id="tvQr" class="tvqr">
+    <h1 id="tvQrTitle">Scan to join</h1>
+    <div id="tvQrCode" class="qr"></div>
+    <p id="tvQrCount"></p>
+  </div>
+
+  <div id="review" class="panel" hidden>
+    <h2>Check what was read</h2>
+    <p class="sub">Fix any misread names. First round in order, top to bottom; write BYE for an empty spot.</p>
+    <ul id="photoWarnings" class="warnings"></ul>
+    <label for="slots">First round</label>
+    <textarea id="slots"></textarea>
+    <label for="winners">Results shown on the sheet (one line per column)</label>
+    <textarea id="winners" placeholder="Round 2: John, Ann"></textarea>
+    <div class="row">
+      <button id="cancelReview" class="alt">Cancel</button>
+      <button id="useReview" class="go" style="margin-top:0">Create bracket</button>
+    </div>
+  </div>
+
+  <div id="msg" class="msg"></div>
+  <div class="toolbar" hidden>
+    <button id="simNext" class="alt needs-bracket" title="Pick a winner for the next match automatically">▶ Next</button>
+    <button id="simAll" class="alt needs-bracket" title="Pick winners for every remaining match">⏩ Play all</button>
+    <button id="tv" class="alt needs-bracket">📺 TV view</button>
+    <button id="reset" class="alt">🗑 Reset</button>
+  </div>
+  <section id="now" class="now" hidden>
+    <h2>Now playing</h2>
+    <div id="stationsGrid" class="stations"></div>
+    <p id="upNext" class="upnext"></p>
+  </section>
+  <div id="teams"></div>
+  <div id="bracket"></div>
+
+  <div id="sheet" class="overlay" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <h2 id="sheetTitle"></h2>
+      <p id="sheetSub" class="sub"></p>
+      <div id="scoreRows">
+        <div class="srow" data-side="a">
+          <span class="sname"></span>
+          <button class="step" data-d="-1" aria-label="Take a game away">−</button>
+          <span class="sval">0</span>
+          <button class="step" data-d="1" aria-label="Add a game">+</button>
+        </div>
+        <div class="srow" data-side="b">
+          <span class="sname"></span>
+          <button class="step" data-d="-1" aria-label="Take a game away">−</button>
+          <span class="sval">0</span>
+          <button class="step" data-d="1" aria-label="Add a game">+</button>
+        </div>
+      </div>
+      <p id="winHelp" class="sub"></p>
+      <div class="row">
+        <button id="winA" class="alt"></button>
+        <button id="winB" class="alt"></button>
+      </div>
+      <div id="sheetStationBox">
+        <label for="sheetStation" id="sheetStationLabel">Board</label>
+        <select id="sheetStation"></select>
+      </div>
+      <button id="sheetClose" class="go">Done</button>
+    </div>
+  </div>
+  <button id="exitTv" class="alt">Exit TV view</button>
+  <p id="appVersion" class="appversion"></p>
+  <div id="hint" class="hint" hidden></div>
+
+  <div id="resetDlg" class="overlay" hidden>
+    <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="resetTitle">
+      <div id="resetStep1">
+        <h2 id="resetTitle">Start over?</h2>
+        <button id="resetResults" class="choice">
+          <strong>↺ Reset results</strong>
+          <span>Keep the same bracket and players. Every winner is cleared.</span>
+        </button>
+        <button id="clearAll" class="choice danger">
+          <strong>🗑 Clear everything</strong>
+          <span>Remove the bracket, the player list and all results.</span>
+        </button>
+        <button id="resetCancel" class="alt">Cancel</button>
+      </div>
+      <div id="resetStep2" hidden>
+        <h2 id="confirmTitle"></h2>
+        <p id="confirmText" class="sub"></p>
+        <div class="row">
+          <button id="confirmNo" class="alt">Go back</button>
+          <button id="confirmYes" class="go danger"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
