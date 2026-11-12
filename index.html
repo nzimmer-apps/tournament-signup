@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tournament sign-up</title>
+  <meta name="robots" content="noindex" />
+  <style>
+    :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --line:#dedcd6; --accent:#1f6f5c; --err:#b3261e; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#121314; --card:#1d1f21; --ink:#ececec; --muted:#9a9a9f; --line:#33363a; --accent:#5cc2a6; --err:#ff8a80; }
+    }
+    * { box-sizing:border-box; }
+    [hidden] { display:none !important; }
+    body { margin:0; min-height:100vh; background:var(--bg); color:var(--ink); font:17px/1.45 system-ui, sans-serif;
+           display:flex; align-items:flex-start; justify-content:center; padding:48px 16px; }
+    main { width:100%; max-width:420px; background:var(--card); border:1px solid var(--line); border-radius:16px; padding:24px 20px; }
+    h1 { font-size:1.4rem; margin:0 0 4px; }
+    .event { color:var(--muted); margin:0 0 20px; }
+    label { display:block; font-size:.9rem; color:var(--muted); margin-bottom:6px; }
+    input { width:100%; font:inherit; padding:12px 14px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); }
+    button { width:100%; margin-top:14px; font:inherit; font-weight:600; padding:13px; border:0; border-radius:10px; background:var(--accent); color:#fff; }
+    @media (prefers-color-scheme: dark) { button { color:#121314; } }
+    button.link { background:none; color:var(--accent); font-weight:500; padding:8px; }
+    button:disabled { opacity:.6; }
+    .error { color:var(--err); margin-top:12px; }
+    .done { text-align:center; }
+    .done .big { font-size:2.6rem; margin:4px 0; }
+    .muted { color:var(--muted); font-size:.92rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <div id="bad" hidden>
+      <h1>This sign-up link isn't valid</h1>
+      <p class="muted">Ask the organizer to show the QR code again and scan it.</p>
+    </div>
+
+    <form id="form" hidden>
+      <h1>Sign up</h1>
+      <p class="event" id="event">Join the tournament</p>
+      <label for="name">Your name, as you want it on the bracket</label>
+      <input id="name" maxlength="40" autocomplete="name" autocapitalize="words" required />
+      <button id="send" type="submit">Join</button>
+      <p id="error" class="error" hidden></p>
+    </form>
+
+    <div id="done" class="done" hidden>
+      <div class="big">✅</div>
+      <h1>You're on the list</h1>
+      <p class="muted">Signed up as <strong id="who"></strong>. The organizer will confirm you before the bracket is made.</p>
+      <button id="again" class="link" type="button">Sign up someone else</button>
+    </div>
+  </main>
+
+  <script>
+    // Sends the name to the organizer's app through ntfy.sh, a free relay.
+    // The channel name in the link is random and only the organizer's app knows it.
+    const params = new URLSearchParams(location.search);
+    const topic = params.get("t") || "";
+    const eventName = (params.get("n") || "").slice(0, 60);
+    const $ = (id) => document.getElementById(id);
+    const doneKey = "signed-up:" + topic;
+
+    if (!/^[A-Za-z0-9_-]{12,64}$/.test(topic)) {
+      $("bad").hidden = false;
+    } else {
+      if (eventName) $("event").textContent = eventName;
+      let previous = null;
+      try { previous = localStorage.getItem(doneKey); } catch {}
+      previous ? showDone(previous) : ($("form").hidden = false);
+    }
+
+    function showDone(name) {
+      $("who").textContent = name;
+      $("form").hidden = true;
+      $("done").hidden = false;
+    }
+
+    $("again").addEventListener("click", () => {
+      try { localStorage.removeItem(doneKey); } catch {}
+      $("name").value = "";
+      $("done").hidden = true;
+      $("form").hidden = false;
+      $("name").focus();
+    });
+
+    $("form").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const name = $("name").value.replace(/[\u0000-\u001f<>]/g, "").replace(/\s+/g, " ").trim();
+      if (!name) return;
+      $("send").disabled = true;
+      $("error").hidden = true;
+      try {
+        // Plain-text body keeps this a "simple" request (no CORS preflight).
+        const res = await fetch("https://ntfy.sh/" + topic, {
+          method: "POST",
+          body: JSON.stringify({ type: "signup", name }),
+        });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        try { localStorage.setItem(doneKey, name); } catch {}
+        showDone(name);
+      } catch (e) {
+        $("error").textContent = "Couldn't send your name. Check your connection and try again.";
+        $("error").hidden = false;
+      } finally {
+        $("send").disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
